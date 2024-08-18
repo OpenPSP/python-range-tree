@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "avl_range_tree"
-version = "0.1.0"
+version = "0.2.0"
 description = "Augmented AVL tree to index and search intervals."
 readme = "README.md"
 authors = ["Mikel"]
