@@ -1,0 +1,13 @@
+[tool.poetry]
+name = "range_tree"
+version = "0.1.0"
+description = "Augmented AVL tree to index and search intervals."
+readme = "README.md"
+authors = ["Mikel"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+orjson = "^3.10.7"
+
+[tool.poetry.dev-dependencies]
+pytest = "^8.3.2"
