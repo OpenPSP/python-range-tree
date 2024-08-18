@@ -2,8 +2,8 @@ import tempfile
 
 import pytest
 
-from range_tree.avl_tree import RangeTree
-from range_tree.serializer import RangeTreeJSONSerializer
+from avl_range_tree.avl_tree import RangeTree
+from avl_range_tree.serializer import RangeTreeJSONSerializer
 
 
 def test_serialization_with_tempfile():

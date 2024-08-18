@@ -18,7 +18,7 @@ This project implements an augmented AVL tree (a self-balancing binary search tr
 2. Install the package using `pip`:
 
    ```sh
-   pip install range-tree
+   pip install avl_range_tree
    ```
 
 ### Building from Source
@@ -28,8 +28,8 @@ If you'd like to build the package from source:
 1. Clone the repository:
 
     ```sh
-    git clone https://github.com/yourusername/range-tree.git
-    cd range-tree
+    git clone git@github.com:mcoira/python-range-tree.git
+    cd python-range-tree/
     ```
    
 2. Install the package:
@@ -43,7 +43,7 @@ If you'd like to build the package from source:
 ### Importing the Tree
 
 ```python
-from range_tree.avl_tree import RangeTree
+from avl_range_tree.avl_tree import RangeTree
 ```
 
 ### Inserting Intervals

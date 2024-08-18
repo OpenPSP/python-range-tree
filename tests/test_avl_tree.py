@@ -1,6 +1,6 @@
 import pytest
 
-from range_tree.avl_tree import RangeTree
+from avl_range_tree.avl_tree import RangeTree
 
 
 def test_insert_single_interval():
