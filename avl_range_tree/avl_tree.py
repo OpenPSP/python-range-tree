@@ -402,6 +402,7 @@ class RangeTree:
         node.height = node_dict["height"]
         node.left = self._dict_to_node(node_dict["left"])  # Recursively reconstruct the left child
         node.right = self._dict_to_node(node_dict["right"])  # Recursively reconstruct the right child
+        self._size += 1
         return node
 
     @classmethod

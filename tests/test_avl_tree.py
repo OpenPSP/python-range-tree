@@ -369,6 +369,7 @@ def test_serialization():
 
     # Deserialize the tree from the JSON string
     restored_tree = RangeTree.deserialize(json_string)
+    assert len(restored_tree) == 2
 
     # Verify that the restored tree works as expected
     assert restored_tree.search(12) == (10, 20, "key1")
