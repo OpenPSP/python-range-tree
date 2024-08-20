@@ -1,6 +1,7 @@
-from typing import Optional, Dict, Any, Generator, Tuple
+from typing import Optional, Dict, Any, Generator, Tuple, Callable
 
 import orjson
+import json
 
 
 class RangeNode:
@@ -374,15 +375,20 @@ class RangeTree:
             "right": self._node_to_dict(node.right),  # Recursively convert the right child
         }
 
-    def serialize(self) -> str:
+    def serialize(self, serializer: Optional[Callable[[Dict[str, Any]], str]] = None) -> str:
         """
-        Serializes the RangeTree to a JSON string using orjson.
+        Serializes the RangeTree using the provided serializer function or JSON by default.
+
+        Args:
+            serializer (Optional[Callable[[Dict[str, Any]], str]]): A function that takes a dictionary and returns a serialized string.
 
         Returns:
-            str: A JSON string representing the serialized tree.
+            str: The serialized tree as a string.
         """
+        if serializer is None:
+            serializer = json.dumps  # Use the standard json library by default
         tree_dict = {"root": self._node_to_dict(self.root)}
-        return orjson.dumps(tree_dict).decode("utf-8")
+        return serializer(tree_dict)
 
     def _dict_to_node(self, node_dict: Optional[Dict[str, Any]]) -> Optional[RangeNode]:
         """
@@ -406,17 +412,20 @@ class RangeTree:
         return node
 
     @classmethod
-    def deserialize(cls, json_string: str) -> 'RangeTree':
+    def deserialize(cls, data: str, deserializer: Optional[Callable[[str], Dict[str, Any]]] = None) -> 'RangeTree':
         """
-        Deserializes the RangeTree from a JSON string using orjson.
+        Deserializes the RangeTree using the provided deserializer function or JSON by default.
 
         Args:
-            json_string (str): The JSON string representing the serialized tree.
+            data (str): The serialized tree as a string.
+            deserializer (Optional[Callable[[str], Dict[str, Any]]]): A function that takes a serialized string and returns a dictionary.
 
         Returns:
-            RangeTree: The deserialized tree, reconstructed from the JSON data.
+            RangeTree: The deserialized tree.
         """
-        tree_dict = orjson.loads(json_string)
+        if deserializer is None:
+            deserializer = json.loads  # Use the standard json library by default
+        tree_dict = deserializer(data)
         tree = cls()
         tree.root = tree._dict_to_node(tree_dict["root"])
         return tree

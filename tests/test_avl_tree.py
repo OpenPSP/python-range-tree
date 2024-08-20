@@ -1,4 +1,7 @@
-import pytest
+import xml.etree.ElementTree as ET
+from typing import Dict, Any
+
+import orjson
 
 from avl_range_tree.avl_tree import RangeTree
 
@@ -165,6 +168,7 @@ def test_edge_case_single_point_interval():
     assert tree.search(9) is None
     assert tree.search(11) is None
 
+
 def test_tree_size():
     # Create an empty RangeTree
     tree = RangeTree()
@@ -196,6 +200,7 @@ def test_tree_size():
     tree.insert(50, 60, "key6")
     assert len(tree) == 6  # Size should now be 6
 
+
 def test_in_order_traversal():
     # Create an empty RangeTree
     tree = RangeTree()
@@ -237,6 +242,7 @@ def test_in_order_traversal():
     # Check if the in-order traversal is as expected
     assert result == expected_in_order, f"Expected {expected_in_order}, but got {result}"
 
+
 def test_in_order_traversal():
     tree = RangeTree()
 
@@ -276,6 +282,7 @@ def test_in_order_traversal():
 
     # Check if the in-order traversal is as expected
     assert result == expected_in_order, f"Expected {expected_in_order}, but got {result}"
+
 
 def test_pre_order_traversal():
     tree = RangeTree()
@@ -316,6 +323,7 @@ def test_pre_order_traversal():
 
     # Check if the pre-order traversal is as expected
     assert result == expected_pre_order, f"Expected {expected_pre_order}, but got {result}"
+
 
 def test_post_order_traversal():
     tree = RangeTree()
@@ -375,3 +383,137 @@ def test_serialization():
     assert restored_tree.search(12) == (10, 20, "key1")
     assert restored_tree.search(15) == (10, 20, "key1")
     assert restored_tree.search(21) == (15, 25, "key2")
+
+
+def test_custom_serialization_json():
+    def json_serializer(data: Dict[str, Any]) -> str:
+        return orjson.dumps(data).decode("utf-8")
+
+    def json_deserializer(data: str) -> Dict[str, Any]:
+        return orjson.loads(json_string)
+
+    # Create a RangeTree and insert intervals with associated keys
+    tree = RangeTree()
+    tree.insert(10, 20, "key1")
+    tree.insert(5, 15, "key2")
+    tree.insert(15, 25, "key3")
+    tree.insert(3, 8, "key4")
+    tree.insert(12, 18, "key5")
+    tree.insert(1, 4, "key6")
+    tree.insert(8, 12, "key7")
+    tree.insert(20, 30, "key8")
+    tree.insert(25, 35, "key9")
+    tree.insert(2, 6, "key10")
+
+    # Serialize the tree to a JSON string
+    json_string = tree.serialize(json_serializer)
+
+    # Deserialize the tree from the JSON string
+    restored_tree = RangeTree.deserialize(json_string, json_deserializer)
+    assert len(restored_tree) == 10
+
+    # Expected in-order traversal (sorted by start value)
+    expected_in_order = [
+        (1, 4, "key6"),
+        (2, 6, "key10"),
+        (3, 8, "key4"),
+        (5, 15, "key2"),
+        (8, 12, "key7"),
+        (10, 20, "key1"),
+        (12, 18, "key5"),
+        (15, 25, "key3"),
+        (20, 30, "key8"),
+        (25, 35, "key9"),
+    ]
+
+    # Get the in-order traversal from the tree
+    result = list(tree.in_order_traversal(tree.root))
+
+    # Check if the in-order traversal is as expected
+    assert result == expected_in_order, f"Expected {expected_in_order}, but got {result}"
+
+
+def test_custom_serialization_xml():
+    # Example custom serializer (using a simple XML format)
+    def xml_serializer(data: Dict[str, Any]) -> str:
+        root = ET.Element("RangeTree")
+
+        def build_xml_node(data, parent):
+            for key, value in data.items():
+                if isinstance(value, dict):
+                    child = ET.SubElement(parent, key)
+                    build_xml_node(value, child)
+                else:
+                    child = ET.SubElement(parent, key)
+                    child.text = str(value)
+
+        build_xml_node(data, root)
+        return ET.tostring(root, encoding='unicode')
+
+    # Example custom deserializer (parsing the simple XML format)
+    def xml_deserializer(data: str) -> Dict[str, Any]:
+        def parse_xml_element(element) -> Dict[str, Any]:
+            node_dict = {}
+
+            for child in element:
+                print(child.tag)
+                if len(child):  # If the child has children, recursively parse it
+                    node_dict[child.tag] = parse_xml_element(child)
+                else:
+                    # Handle "None" values explicitly and convert the text to int if it's a number
+                    if child.text == "None":
+                        node_dict[child.tag] = None
+                    elif child.text.isdigit():  # Convert the text to int if it's a number, otherwise leave it as a string
+                        node_dict[child.tag] = int(child.text)
+                    else:
+                        node_dict[child.tag] = child.text
+
+            return node_dict
+
+        root = ET.fromstring(data)
+        return parse_xml_element(root)
+
+    # Create a RangeTree and insert intervals with associated keys
+    tree = RangeTree()
+
+    tree.insert(10, 20, "key1")
+    tree.insert(5, 15, "key2")
+    tree.insert(15, 25, "key3")
+    tree.insert(3, 8, "key4")
+    tree.insert(12, 18, "key5")
+    tree.insert(1, 4, "key6")
+    tree.insert(8, 12, "key7")
+    tree.insert(20, 30, "key8")
+    tree.insert(25, 35, "key9")
+    tree.insert(2, 6, "key10")
+
+    # Serialize the tree to a JSON string
+    xml_string = tree.serialize(xml_serializer)
+
+    print(xml_string)
+
+    # Deserialize the tree from the JSON string
+    restored_tree = RangeTree.deserialize(xml_string, xml_deserializer)
+    assert len(restored_tree) == 10
+
+    # Verify that the restored tree works as expected
+
+    # Expected in-order traversal (sorted by start value)
+    expected_in_order = [
+        (1, 4, "key6"),
+        (2, 6, "key10"),
+        (3, 8, "key4"),
+        (5, 15, "key2"),
+        (8, 12, "key7"),
+        (10, 20, "key1"),
+        (12, 18, "key5"),
+        (15, 25, "key3"),
+        (20, 30, "key8"),
+        (25, 35, "key9"),
+    ]
+
+    # Get the in-order traversal from the tree
+    result = list(tree.in_order_traversal(tree.root))
+
+    # Check if the in-order traversal is as expected
+    assert result == expected_in_order, f"Expected {expected_in_order}, but got {result}"
