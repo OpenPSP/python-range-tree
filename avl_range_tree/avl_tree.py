@@ -1,3 +1,8 @@
+from typing import Optional, Dict, Any, Generator, Tuple
+
+import orjson
+
+
 class RangeNode:
     """
     Represents a single node in the AVL tree.
@@ -45,6 +50,7 @@ class RangeTree:
     def __init__(self):
         """Initializes an empty RangeTree."""
         self.root = None
+        self._size = 0  # Initialize a size attribute to keep track of the number of nodes
 
     def get_height(self, node):
         """
@@ -97,7 +103,7 @@ class RangeTree:
         This operation is used to rebalance the tree when it becomes right-heavy.
 
         Args:
-            z (RangeNode): The root of the subtree to rotate.
+            x (RangeNode): The root of the subtree to rotate.
 
         Returns:
             RangeNode: The new root of the rotated subtree.
@@ -191,7 +197,7 @@ class RangeTree:
 
         # Right Right Case
         if (
-            balance < -1 and start >= node.right.start
+                balance < -1 and start >= node.right.start
         ):  # if we insert several times the same range, it always goes to the right, so we need to rebalance when start = node.right.start
             return self.left_rotate(node)
 
@@ -217,6 +223,8 @@ class RangeTree:
             key (str): The key associated with the interval.
         """
         self.root = self.insert_node(self.root, start, end, key)
+        # Increment the size when a new node is inserted
+        self._size += 1
 
     def search_min_range(self, node, point):
         """
@@ -243,7 +251,7 @@ class RangeTree:
 
             # Check if a smaller interval exists in the left subtree
             if left_node and (
-                left_node.end - left_node.start < min_node.end - min_node.start
+                    left_node.end - left_node.start < min_node.end - min_node.start
             ):
                 min_node = left_node
 
@@ -253,7 +261,7 @@ class RangeTree:
 
                 # Check if a smaller interval exists in the right subtree
                 if right_node and (
-                    right_node.end - right_node.start < min_node.end - min_node.start
+                        right_node.end - right_node.start < min_node.end - min_node.start
                 ):
                     min_node = right_node
 
@@ -283,30 +291,131 @@ class RangeTree:
             return (node.start, node.end, node.key)
         return None
 
-    def in_order_traversal(self, node):
+    def __len__(self):
         """
-        In-order traversal of the tree, which prints nodes in ascending order of start values.
+        Returns the number of nodes in the RangeTree.
+
+        Returns:
+            int: The number of nodes in the tree.
+        """
+        return self._size
+
+    def in_order_traversal(self, node: Optional[RangeNode]) -> Generator[Tuple[int, int, str], None, None]:
+        """
+        In-order Traversal recursively visit the left subtree, visit the root node, and finally,
+        visit the right subtree. This order is especially useful in binary search trees to
+        retrieve elements in sorted order.
 
         Args:
-            node (IntervalNode): The current node to start the traversal from.
+            node (RangeNode): The current node to start the traversal from.
+
+        Yields:
+            Tuple[int, int, str]: A tuple representing (start, end, key) for each node.
         """
         if node:
-            self.in_order_traversal(node.left)
-            print(
-                f"Interval: [{node.start}, {node.end}], Key: {node.key}, Max: {node.max}, Height: {node.height}"
-            )
-            self.in_order_traversal(node.right)
+            yield from self.in_order_traversal(node.left)
+            yield (node.start, node.end, node.key)
+            yield from self.in_order_traversal(node.right)
 
-    def pre_order_traversal(self, node):
+    def pre_order_traversal(self, node: Optional[RangeNode]) -> Generator[Tuple[int, int, str], None, None]:
         """
-        Pre-order traversal of the tree, which prints nodes in the order they are processed.
+        Pre-order Traversal visit the root node first, then recursively visit the left subtree,
+        followed by the right subtree.
 
         Args:
-            node (IntervalNode): The current node to start the traversal from.
+            node (RangeNode): The current node to start the traversal from.
+
+        Yields:
+            Tuple[int, int, str]: A tuple representing (start, end, key) for each node.
         """
         if node:
-            print(
-                f"Interval: [{node.start}, {node.end}], Key: {node.key}, Max: {node.max}, Height: {node.height}"
-            )
-            self.pre_order_traversal(node.left)
-            self.pre_order_traversal(node.right)
+            yield (node.start, node.end, node.key)
+            yield from self.pre_order_traversal(node.left)
+            yield from self.pre_order_traversal(node.right)
+
+    def post_order_traversal(self, node: Optional[RangeNode]) -> Generator[Tuple[int, int, str], None, None]:
+        """
+        Post-order traversal recursively visit the left and right subtrees before visiting the root node.
+        This method is useful for operations that require processing children before their parents, such
+        as tree deletions.
+
+        Args:
+            node (RangeNode): The current node to start the traversal from.
+
+        Yields:
+            Tuple[int, int, str]: A tuple representing (start, end, key) for each node.
+        """
+        if node:
+            yield from self.post_order_traversal(node.left)
+            yield from self.post_order_traversal(node.right)
+            yield (node.start, node.end, node.key)
+
+    # Serialization and Deserialization Methods
+    def _node_to_dict(self, node: Optional[RangeNode]) -> Optional[Dict[str, Any]]:
+        """
+        Recursively converts a RangeNode and its children into a dictionary
+        that can be serialized to JSON.
+
+        Args:
+            node (RangeNode): The node to convert to a dictionary.
+
+        Returns:
+            Optional[Dict[str, Any]]: A dictionary representation of the node, including its children.
+        """
+        if node is None:
+            return None
+        return {
+            "start": node.start,
+            "end": node.end,
+            "max": node.max,
+            "height": node.height,
+            "key": node.key,
+            "left": self._node_to_dict(node.left),  # Recursively convert the left child
+            "right": self._node_to_dict(node.right),  # Recursively convert the right child
+        }
+
+    def serialize(self) -> str:
+        """
+        Serializes the RangeTree to a JSON string using orjson.
+
+        Returns:
+            str: A JSON string representing the serialized tree.
+        """
+        tree_dict = {"root": self._node_to_dict(self.root)}
+        return orjson.dumps(tree_dict).decode("utf-8")
+
+    def _dict_to_node(self, node_dict: Optional[Dict[str, Any]]) -> Optional[RangeNode]:
+        """
+        Recursively converts a dictionary representation of a node back into a RangeNode.
+
+        Args:
+            node_dict (Optional[Dict[str, Any]]): The dictionary representing a RangeNode.
+
+        Returns:
+            Optional[RangeNode]: The reconstructed RangeNode with its children.
+        """
+        if node_dict is None:
+            return None
+
+        node = RangeNode(node_dict["start"], node_dict["end"], node_dict["key"])
+        node.max = node_dict["max"]
+        node.height = node_dict["height"]
+        node.left = self._dict_to_node(node_dict["left"])  # Recursively reconstruct the left child
+        node.right = self._dict_to_node(node_dict["right"])  # Recursively reconstruct the right child
+        return node
+
+    @classmethod
+    def deserialize(cls, json_string: str) -> 'RangeTree':
+        """
+        Deserializes the RangeTree from a JSON string using orjson.
+
+        Args:
+            json_string (str): The JSON string representing the serialized tree.
+
+        Returns:
+            RangeTree: The deserialized tree, reconstructed from the JSON data.
+        """
+        tree_dict = orjson.loads(json_string)
+        tree = cls()
+        tree.root = tree._dict_to_node(tree_dict["root"])
+        return tree
